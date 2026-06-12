@@ -45,14 +45,14 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 
-const userFirebaseConfig = {
-  apiKey: 'AIzaSyAroObb9AOj2UZXHZQ76HxZwztPx8V-9Ko',
-  authDomain: 'absensi-smpn1-lembo-raya.firebaseapp.com',
-  projectId: 'absensi-smpn1-lembo-raya',
-  storageBucket: 'absensi-smpn1-lembo-raya.firebasestorage.app',
-  messagingSenderId: '625336328105',
-  appId: '1:625336328105:web:81db6cafa0b0ce292aeeb8',
-}
+const firebaseConfig = {
+  apiKey: "AIzaSyDQHVbZ7wKNwkeBjCeEJwS1wBXH5kNjlNY",
+  authDomain: "absensi-smpn1-lembo.firebaseapp.com",
+  projectId: "absensi-smpn1-lembo",
+  storageBucket: "absensi-smpn1-lembo.firebasestorage.app",
+  messagingSenderId: "667230179070",
+  appId: "1:667230179070:web:e380aa039a6eb29aae1faf"
+};
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig
 
