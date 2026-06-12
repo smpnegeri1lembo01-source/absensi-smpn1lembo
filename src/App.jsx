@@ -45,7 +45,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 
-const firebaseConfig = {
+const defaultFirebaseConfig = {
   apiKey: "AIzaSyDQHVbZ7wKNwkeBjCeEJwS1wBXH5kNjlNY",
   authDomain: "absensi-smpn1-lembo.firebaseapp.com",
   projectId: "absensi-smpn1-lembo",
@@ -54,7 +54,7 @@ const firebaseConfig = {
   appId: "1:667230179070:web:e380aa039a6eb29aae1faf"
 };
 
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : defaultFirebaseConfig
 
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
