@@ -1,8 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  Home, Clock, User, MapPin, CheckCircle, LogIn, LogOut, AlertCircle, RefreshCw, Lock, School, Users, FileText, LayoutDashboard, ClipboardList, UserPlus, Trash2, X, Camera, FileCheck, Download, FileSpreadsheet, Briefcase, Activity, Upload, Paperclip, Key, Eye, EyeOff, Image as ImageIcon, GraduationCap, QrCode, Scan, Info, Search, CheckSquare, XCircle, Edit,
+  Home,
+  Clock,
+  User,
+  MapPin,
+  CheckCircle,
+  LogIn,
+  LogOut,
+  AlertCircle,
+  RefreshCw,
+  Lock,
+  School,
+  Users,
+  FileText,
+  LayoutDashboard,
+  ClipboardList,
+  UserPlus,
+  Trash2,
+  X,
+  Camera,
+  FileCheck,
+  Download,
+  FileSpreadsheet,
+  Briefcase,
+  Activity,
+  Upload,
+  Paperclip,
+  Key,
+  Eye,
+  EyeOff,
+  Image as ImageIcon,
+  GraduationCap,
+  QrCode,
+  Scan,
+  Info,
+  Search,
+  CheckSquare,
+  XCircle,
+  Edit,
 } from 'lucide-react'
 
+// --- Firebase Configuration & Imports ---
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore'
@@ -25,11 +63,14 @@ const db = getFirestore(app)
 const rawAppId = typeof __app_id !== 'undefined' ? String(__app_id) : 'smpn6mamosalato-absensi'
 const appId = encodeURIComponent(rawAppId)
 
+// --- Helper Functions ---
 const getDistanceFromLatLonInM = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3
   const dLat = (lat2 - lat1) * (Math.PI / 180)
   const dLon = (lon2 - lon1) * (Math.PI / 180)
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
 }
@@ -43,23 +84,19 @@ const timeToMins = (timeStr) => {
 const isDateInRange = (dateObj, startStr, endStr) => {
   if (!startStr || !endStr) return false
   const check = new Date(dateObj).setHours(0, 0, 0, 0)
-
-  // Memisahkan string YYYY-MM-DD secara manual agar tidak terpengaruh pergeseran hari karena Timezone UTC
   const [sy, sm, sd] = startStr.split('-')
   const start = new Date(sy, sm - 1, sd).setHours(0, 0, 0, 0)
-
   const [ey, em, ed] = endStr.split('-')
   const end = new Date(ey, em - 1, ed).setHours(0, 0, 0, 0)
-
   return check >= start && check <= end
 }
 
-export default function App() {
-  const todayDateObj = new Date()
-  const todayString = `${todayDateObj.getFullYear()}-${String(todayDateObj.getMonth() + 1).padStart(2, '0')}-${String(
-    todayDateObj.getDate()
-  ).padStart(2, '0')}`
+const getTodayString = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
+export default function App() {
   // --- STATE DECLARATIONS ---
   const [authUser, setAuthUser] = useState(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -85,11 +122,18 @@ export default function App() {
   const canvasRef = useRef(null)
   const [pendingAbsen, setPendingAbsen] = useState(null)
   const [showSpecialModal, setShowSpecialModal] = useState(false)
-  const [specialAbsenData, setSpecialAbsenData] = useState({ type: '', file: null, fileName: '', photoBase64: null, alasan: '', startDate: '', endDate: '' })
+  const [specialAbsenData, setSpecialAbsenData] = useState({
+    type: '', file: null, fileName: '', photoBase64: null, alasan: '', startDate: '', endDate: '',
+  })
 
+  // Filter States
+  const [filterType, setFilterType] = useState('Bulan') // 'Bulan' atau 'Tanggal'
+  const [filterStartDate, setFilterStartDate] = useState(getTodayString())
+  const [filterEndDate, setFilterEndDate] = useState(getTodayString())
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1)
   const [filterYear, setFilterYear] = useState(new Date().getFullYear())
   const [filterKelas, setFilterKelas] = useState('Semua')
+  
   const [previewImage, setPreviewImage] = useState(null)
 
   const [showAddModal, setShowAddModal] = useState(false)
@@ -97,6 +141,7 @@ export default function App() {
 
   const [showAddStudentModal, setShowAddStudentModal] = useState(false)
   const [newStudent, setNewStudent] = useState({ name: '', nisn: '', kelas: 'VII', parentPhone: '' })
+
   const [showEditStudentModal, setShowEditStudentModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState(null)
   const [qrModalStudent, setQrModalStudent] = useState(null)
@@ -114,6 +159,7 @@ export default function App() {
   const [forgotNewPassword, setForgotNewPassword] = useState('')
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [newPassword, setNewPassword] = useState('')
+
   const [showPasswordLogin, setShowPasswordLogin] = useState(false)
   const [showPasswordForgot, setShowPasswordForgot] = useState(false)
   const [showPasswordChange, setShowPasswordChange] = useState(false)
@@ -138,32 +184,57 @@ export default function App() {
 
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [isInstallable, setIsInstallable] = useState(false)
+
   const [isParentMode, setIsParentMode] = useState(false)
   const [parentInputNisn, setParentInputNisn] = useState('')
   const [searchedNisn, setSearchedNisn] = useState('')
   const [showParentSpecialModal, setShowParentSpecialModal] = useState(false)
-  const [parentSpecialData, setParentSpecialData] = useState({ type: '', photoBase64: null, fileName: '', alasan: '', startDate: '', endDate: '' })
+  const [parentSpecialData, setParentSpecialData] = useState({
+    type: '', photoBase64: null, fileName: '', alasan: '', startDate: '', endDate: '',
+  })
 
+  // --- DERIVED DATA ---
   const myLogs = logs.filter(log => String(log.nip) === String(userNip) && log.isActive !== false)
   const pendingPasswordResets = employees.filter(emp => emp.resetRequested === true)
 
   const formatTime = date => date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const formatDate = date => date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
+  // Data Grouping for current User (Dashboard)
   const groupedLogs = {}
   logs.forEach(log => {
     const d = new Date(log.timestamp)
-    if (d.getMonth() + 1 !== filterMonth || d.getFullYear() !== filterYear) return
+    if (filterType === 'Bulan') {
+      if (d.getMonth() + 1 !== filterMonth || d.getFullYear() !== filterYear) return
+    } else {
+      if (!isDateInRange(d, filterStartDate, filterEndDate)) return
+    }
     const rawDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const key = `${log.nip}_${rawDate}`
 
     if (!groupedLogs[key]) {
       const emp = employees.find(e => String(e.nip) === String(log.nip))
-      groupedLogs[key] = { id: key, logIds: [], name: String(log.name), nip: String(log.nip), dept: emp ? String(emp.dept) : '-', date: String(d.toLocaleDateString('id-ID')), rawDate: rawDate, time: '-', timeKeluar: '-', statusKeluar: '-', status: '', isActive: true, alasan: '' }
+      groupedLogs[key] = {
+        id: key,
+        logIds: [],
+        name: String(log.name),
+        nip: String(log.nip),
+        dept: emp ? String(emp.dept) : '-',
+        date: String(d.toLocaleDateString('id-ID')),
+        rawDate: rawDate,
+        time: '-',
+        timeKeluar: '-',
+        statusKeluar: '-',
+        status: '',
+        isActive: true,
+        alasan: '',
+      }
     }
     groupedLogs[key].logIds.push(log.id)
     if (log.isActive === false) groupedLogs[key].isActive = false
-    if (['Izin', 'Sakit', 'Tugas Luar'].includes(log.type)) { if (log.alasan) groupedLogs[key].alasan = String(log.alasan) }
+    if (['Izin', 'Sakit', 'Tugas Luar'].includes(log.type)) {
+      if (log.alasan) groupedLogs[key].alasan = String(log.alasan)
+    }
 
     if (log.type === 'Masuk' || log.type === 'Hadir Terlambat') {
       groupedLogs[key].time = String(formatTime(d).substring(0, 5))
@@ -171,7 +242,8 @@ export default function App() {
       const batasMins = operationalHours.batasTepatWaktu ? timeToMins(operationalHours.batasTepatWaktu) : 450;
       
       if (logMins > batasMins || log.type === 'Hadir Terlambat') groupedLogs[key].status = 'Terlambat'
-      else if (groupedLogs[key].status !== 'Izin' && groupedLogs[key].status !== 'Sakit' && groupedLogs[key].status !== 'Tugas Luar') groupedLogs[key].status = 'Hadir'
+      else if (groupedLogs[key].status !== 'Izin' && groupedLogs[key].status !== 'Sakit' && groupedLogs[key].status !== 'Tugas Luar')
+        groupedLogs[key].status = 'Hadir'
     } else if (log.type === 'Keluar' || log.type === 'Pulang') {
       groupedLogs[key].timeKeluar = String(formatTime(d).substring(0, 5))
       if (!groupedLogs[key].status) groupedLogs[key].status = 'Hadir'
@@ -196,8 +268,11 @@ export default function App() {
     izin: activeReportData.filter(r => r.status === 'Izin').length,
     sakit: activeReportData.filter(r => r.status === 'Sakit').length,
     alpa: activeReportData.filter(r => r.status === 'Alpa' || r.status === '').length,
-    periodStr: String(new Date(filterYear, filterMonth - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })),
+    periodStr: filterType === 'Bulan' 
+      ? String(new Date(filterYear, filterMonth - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }))
+      : `${new Date(filterStartDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric'})} - ${new Date(filterEndDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric'})}`
   }
+
   const currentDateStr = String(new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }))
   
   const getKepalaSekolahData = () => {
@@ -208,57 +283,79 @@ export default function App() {
   const getKopHTMLTemplate = () => `
     <table class="kop-surat" style="width: 100%; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 15px; border-collapse: collapse;">
       <tr>
-        <td style="width: 90px; text-align: center; vertical-align: middle; border: none; padding: 0;">${logos.kab ? `<img src="${logos.kab}" style="width: 85px; height: 85px; object-fit: contain;" />` : ''}</td>
+        <td style="width: 90px; text-align: center; vertical-align: middle; border: none; padding: 0;">
+          ${logos.kab ? `<img src="${logos.kab}" style="width: 85px; height: 85px; object-fit: contain;" />` : ''}
+        </td>
         <td style="text-align: center; vertical-align: middle; border: none; padding: 0px 10px;">
           <div style="font-size: 16px; font-weight: bold; text-transform: uppercase; white-space: nowrap;">PEMERINTAH KABUPATEN MOROWALI UTARA</div>
           <div style="font-size: 18px; font-weight: bold; text-transform: uppercase; margin-top: 4px; white-space: nowrap;">DINAS PENDIDIKAN DAN KEBUDAYAAN DAERAH</div>
           <div style="font-size: 24px; font-weight: bold; text-transform: uppercase; margin-top: 6px; white-space: nowrap;">SMP NEGERI 1 LEMBO</div>
           <div style="font-size: 12px; margin-top: 6px;">Alamat : Kec. Lembo Raya, Kab. Morowali Utara</div>
         </td>
-        <td style="width: 90px; text-align: center; vertical-align: middle; border: none; padding: 0;">${logos.sek ? `<img src="${logos.sek}" style="width: 85px; height: 85px; object-fit: contain;" />` : ''}</td>
+        <td style="width: 90px; text-align: center; vertical-align: middle; border: none; padding: 0;">
+          ${logos.sek ? `<img src="${logos.sek}" style="width: 85px; height: 85px; object-fit: contain;" />` : ''}
+        </td>
       </tr>
     </table>
   `
 
+  // --- USE EFFECTS ---
   useEffect(() => { scanModeRef.current = scanMode }, [scanMode])
   useEffect(() => { studentsRef.current = students }, [students])
   useEffect(() => { studentLogsRef.current = studentLogs }, [studentLogs])
 
-  const toggleAdminPasswordVisibility = id => setVisibleAdminPasswords(prev => ({ ...prev, [id]: !prev[id] }))
+  const toggleAdminPasswordVisibility = id => { setVisibleAdminPasswords(prev => ({ ...prev, [id]: !prev[id] })) }
 
   useEffect(() => {
-    const handler = e => { e.preventDefault(); setDeferredPrompt(e); setIsInstallable(true) }
+    const handler = e => {
+      e.preventDefault(); setDeferredPrompt(e); setIsInstallable(true)
+    }
     window.addEventListener('beforeinstallprompt', handler)
-    window.addEventListener('appinstalled', () => { setIsInstallable(false); setDeferredPrompt(null); showNotification('Aplikasi berhasil diinstal ke HP!', 'success') })
+    window.addEventListener('appinstalled', () => {
+      setIsInstallable(false); setDeferredPrompt(null); showNotification('Aplikasi berhasil diinstal ke HP!', 'success')
+    })
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
   useEffect(() => {
     const appIcon = logos.sek || 'https://cdn-icons-png.flaticon.com/512/3135/3135810.png'
-    const manifest = { name: 'Absensi SMPN 1 Lembo', short_name: 'Absen SMPN 1', description: 'Sistem Informasi Absensi SMP NEGERI 1 LEMBO', start_url: '/', display: 'standalone', background_color: '#ffffff', theme_color: '#2563eb', icons: [{ src: appIcon, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }] }
+    const manifest = {
+      name: 'Absensi SMPN 1 Lembo', short_name: 'Absen SMPN 1', description: 'Sistem Informasi Absensi SMP NEGERI 1 LEMBO',
+      start_url: '/', display: 'standalone', background_color: '#ffffff', theme_color: '#2563eb',
+      icons: [{ src: appIcon, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }],
+    }
     const blobManifest = new Blob([JSON.stringify(manifest)], { type: 'application/json' })
     const manifestURL = URL.createObjectURL(blobManifest)
 
     let link = document.querySelector('link[rel="manifest"]')
-    if (!link) { link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link) }
+    if (!link) {
+      link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link)
+    }
     link.href = manifestURL
-    if (logos.sek) { let favicon = document.querySelector('link[rel="icon"]'); if (!favicon) { favicon = document.createElement('link'); favicon.rel = 'icon'; document.head.appendChild(favicon) } favicon.href = logos.sek }
+
+    if (logos.sek) {
+      let favicon = document.querySelector('link[rel="icon"]')
+      if (!favicon) {
+        favicon = document.createElement('link'); favicon.rel = 'icon'; document.head.appendChild(favicon)
+      }
+      favicon.href = logos.sek
+    }
     return () => URL.revokeObjectURL(manifestURL)
   }, [logos.sek])
 
   useEffect(() => {
     if (!document.getElementById('html5-qrcode-script')) {
-      const script = document.createElement('script')
-      script.id = 'html5-qrcode-script'; script.src = 'https://unpkg.com/html5-qrcode'; script.async = true
-      script.onload = () => setScriptLoaded(true)
-      document.head.appendChild(script)
-    } else setScriptLoaded(true)
+      const script = document.createElement('script'); script.id = 'html5-qrcode-script'; script.src = 'https://unpkg.com/html5-qrcode'; script.async = true
+      script.onload = () => setScriptLoaded(true); document.head.appendChild(script)
+    } else { setScriptLoaded(true) }
   }, [])
 
   useEffect(() => {
     const initAuth = async () => {
-      try { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth) } 
-      catch (error) { console.error('Auth Error:', error) }
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token)
+        else await signInAnonymously(auth)
+      } catch (error) { console.error('Auth Error:', error) }
     }
     initAuth()
     const unsubscribe = onAuthStateChanged(auth, setAuthUser)
@@ -277,15 +374,25 @@ export default function App() {
 
       const unsubLogos = onSnapshot(settingsRef, docSnap => { if (docSnap.exists()) setLogos(docSnap.data()) })
       const unsubOpsHours = onSnapshot(opsHoursRef, docSnap => { if (docSnap.exists()) setOperationalHours(prev => ({ ...prev, ...docSnap.data() })) })
-      const unsubEmployees = onSnapshot(employeesRef, snapshot => { setIsDbConnected(true); setEmployees(snapshot.docs.map(doc => ({ id: String(doc.id), ...doc.data() }))) }, () => setIsDbConnected(false))
-      const unsubStudents = onSnapshot(studentsRef, snapshot => { setStudents(snapshot.docs.map(doc => ({ id: String(doc.id), ...doc.data() }))) })
+      const unsubEmployees = onSnapshot(employeesRef, snapshot => {
+        setIsDbConnected(true)
+        const emps = snapshot.docs.map(doc => ({ id: String(doc.id), ...doc.data() }))
+        setEmployees(emps)
+      }, () => setIsDbConnected(false))
+      const unsubStudents = onSnapshot(studentsRef, snapshot => {
+        setStudents(snapshot.docs.map(doc => ({ id: String(doc.id), ...doc.data() })))
+      })
       const unsubLogs = onSnapshot(logsRef, snapshot => {
-        const fetchedLogs = snapshot.docs.map(doc => ({ id: String(doc.id), ...doc.data(), isActive: doc.data().isActive !== false, timestamp: new Date(doc.data().timestamp) }))
-        fetchedLogs.sort((a, b) => b.timestamp - a.timestamp); setLogs(fetchedLogs)
+        const fetchedLogs = snapshot.docs.map(doc => ({
+          id: String(doc.id), ...doc.data(), isActive: doc.data().isActive !== false, timestamp: new Date(doc.data().timestamp),
+        }))
+        fetchedLogs.sort((a, b) => b.timestamp - a.timestamp)
+        setLogs(fetchedLogs)
       })
       const unsubStudentLogs = onSnapshot(studentLogsRefPath, snapshot => {
         const fetched = snapshot.docs.map(doc => ({ id: String(doc.id), ...doc.data() }))
-        fetched.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); setStudentLogs(fetched)
+        fetched.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        setStudentLogs(fetched)
       })
 
       return () => { unsubEmployees(); unsubStudents(); unsubLogs(); unsubLogos(); unsubStudentLogs(); unsubOpsHours() }
@@ -301,11 +408,36 @@ export default function App() {
     if (userRole === 'pegawai' && userNip) {
       const today = new Date().toDateString()
       const myLogsToday = logs.filter(l => String(l.nip) === String(userNip) && new Date(l.timestamp).toDateString() === today && l.isActive !== false)
-      if (myLogsToday.length > 0) { setIsCheckedIn(myLogsToday[0].type === 'Masuk' || myLogsToday[0].type === 'Hadir Terlambat'); setTodayLog(myLogsToday[0]) } 
-      else { setIsCheckedIn(false); setTodayLog(null) }
+      if (myLogsToday.length > 0) {
+        setIsCheckedIn(myLogsToday[0].type === 'Masuk' || myLogsToday[0].type === 'Hadir Terlambat')
+        setTodayLog(myLogsToday[0])
+      } else {
+        setIsCheckedIn(false); setTodayLog(null)
+      }
     }
   }, [logs, userRole, userNip])
 
+  useEffect(() => {
+    let html5QrcodeScanner
+    if (activeTab === 'scan' && scriptLoaded && window.Html5QrcodeScanner) {
+      html5QrcodeScanner = new window.Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 } }, false)
+      html5QrcodeScanner.render(decodedText => {
+        const now = Date.now()
+        if (lastScanned.current[decodedText] && now - lastScanned.current[decodedText] < 3000) return
+        lastScanned.current[decodedText] = now
+        processStudentScan(decodedText)
+      }, undefined)
+    }
+    return () => { if (html5QrcodeScanner) html5QrcodeScanner.clear().catch(e => console.error(e)) }
+  }, [activeTab, scriptLoaded])
+
+  useEffect(() => {
+    if (showCamera) startCamera()
+    else stopCamera()
+    return () => stopCamera()
+  }, [showCamera])
+
+  // --- HANDLERS ---
   const showNotification = (message, type = 'success') => {
     setNotification({ message: String(message), type: String(type) })
     setTimeout(() => setNotification(null), 3000)
@@ -328,20 +460,6 @@ export default function App() {
     reader.readAsDataURL(file)
   }
 
-  useEffect(() => {
-    let html5QrcodeScanner
-    if (activeTab === 'scan' && scriptLoaded && window.Html5QrcodeScanner) {
-      html5QrcodeScanner = new window.Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 } }, false)
-      html5QrcodeScanner.render(decodedText => {
-        const now = Date.now()
-        if (lastScanned.current[decodedText] && now - lastScanned.current[decodedText] < 3000) return
-        lastScanned.current[decodedText] = now
-        processStudentScan(decodedText)
-      }, undefined)
-    }
-    return () => { if (html5QrcodeScanner) html5QrcodeScanner.clear().catch(e => console.error(e)) }
-  }, [activeTab, scriptLoaded])
-
   const processStudentScan = async nisn => {
     if (!authUser) return
     const student = studentsRef.current.find(s => String(s.nisn) === String(nisn))
@@ -349,14 +467,21 @@ export default function App() {
 
     const todayStr = new Date().toDateString()
     const currentMode = scanModeRef.current
-    const hasScannedToday = studentLogsRef.current.some(log => String(log.nisn) === String(student.nisn) && log.type === currentMode && new Date(log.timestamp).toDateString() === todayStr)
+
+    const hasScannedToday = studentLogsRef.current.some(
+      log => String(log.nisn) === String(student.nisn) && log.type === currentMode && new Date(log.timestamp).toDateString() === todayStr
+    )
 
     if (hasScannedToday) { showNotification(`Ditolak: ${student.name} sudah absen ${currentMode} hari ini!`, 'error'); return }
 
     try {
       const logRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'student_attendance_logs'))
       const currentTimeNow = new Date()
-      await setDoc(logRef, { nisn: String(student.nisn), name: String(student.name), kelas: String(student.kelas), type: String(currentMode), approvalStatus: 'Disetujui', timestamp: currentTimeNow.toISOString(), scannedBy: String(userName), parentPhone: student.parentPhone || null })
+
+      await setDoc(logRef, {
+        nisn: String(student.nisn), name: String(student.name), kelas: String(student.kelas), type: String(currentMode),
+        approvalStatus: 'Disetujui', timestamp: currentTimeNow.toISOString(), scannedBy: String(userName), parentPhone: student.parentPhone || null,
+      })
 
       if (student.parentPhone) {
         showNotification(`✅ Berhasil: ${student.name}. Membuka WA Otomatis...`, 'success')
@@ -381,8 +506,9 @@ export default function App() {
     }
   }
 
-  const stopCamera = () => { if (videoRef.current && videoRef.current.srcObject) videoRef.current.srcObject.getTracks().forEach(track => track.stop()) }
-  useEffect(() => { if (showCamera) startCamera(); else stopCamera(); return () => stopCamera() }, [showCamera])
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) { videoRef.current.srcObject.getTracks().forEach(track => track.stop()) }
+  }
 
   const capturePhotoAndAbsen = () => {
     if (videoRef.current && canvasRef.current) {
@@ -407,10 +533,12 @@ export default function App() {
         const lat = position.coords.latitude; const lng = position.coords.longitude
         let addressName = `Titik Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`
         let isAtSchool = false; let distanceToSchool = null
+
         if (logos.schoolLocation && logos.schoolLocation.lat && logos.schoolLocation.lng) {
           distanceToSchool = getDistanceFromLatLonInM(lat, lng, logos.schoolLocation.lat, logos.schoolLocation.lng)
           if (distanceToSchool <= 20) isAtSchool = true
         }
+
         if (isAtSchool) {
           if (absenType === 'Keluar' || absenType === 'Pulang') addressName = 'Anda Berhasil Absen Pulang di SMP Negeri 1 Lembo'
           else addressName = 'Berhasil Absen di SMP Negeri 1 Lembo'
@@ -419,8 +547,8 @@ export default function App() {
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, { headers: { 'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8' } })
             const data = await response.json()
             if (data && data.display_name) {
-              if (!logos.schoolLocation && (data.display_name.toLowerCase().includes('lembo') || data.display_name.toLowerCase().includes('morowali'))) addressName = `SMP Negeri 1 Lembo, ${data.display_name}`
-              else addressName = data.display_name
+              if (!logos.schoolLocation && (data.display_name.toLowerCase().includes('lembo') || data.display_name.toLowerCase().includes('morowali'))) { addressName = `SMP Negeri 1 Lembo, ${data.display_name}` } 
+              else { addressName = data.display_name }
             }
           } catch (error) { console.error(error) }
         }
@@ -443,8 +571,10 @@ export default function App() {
     navigator.geolocation.getCurrentPosition(
       async position => {
         const lat = position.coords.latitude; const lng = position.coords.longitude
-        try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'logos'), { schoolLocation: { lat, lng } }, { merge: true }); showNotification('Titik GPS Sekolah berhasil disetel!', 'success') } 
-        catch (err) { showNotification('Gagal menyimpan lokasi sekolah.', 'error') }
+        try {
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'logos'), { schoolLocation: { lat, lng } }, { merge: true })
+          showNotification('Titik GPS Sekolah berhasil disetel!', 'success')
+        } catch (err) { showNotification('Gagal menyimpan lokasi sekolah.', 'error') }
         setIsLoading(false)
       },
       error => { showNotification('Gagal mengambil titik GPS Anda. Pastikan GPS menyala.', 'error'); setIsLoading(false) },
@@ -459,12 +589,18 @@ export default function App() {
     try {
       const locationData = await getLocation(type)
       if ((type === 'Masuk' || type === 'Keluar' || type === 'Hadir Terlambat') && logos.schoolLocation?.lat) {
-        if (locationData.lat === 0 && locationData.lng === 0) { showNotification('Gagal mendapatkan lokasi. Pastikan GPS/Lokasi HP menyala.', 'error'); setIsLoading(false); setPendingAbsen(null); return }
-        if (locationData.distance !== null && locationData.distance > 20) { showNotification('Maaf anda melakukan Absensi bukan pada SMP Negeri 1 Lembo', 'error'); setIsLoading(false); setPendingAbsen(null); return }
+        if (locationData.lat === 0 && locationData.lng === 0) {
+          showNotification('Gagal mendapatkan lokasi. Pastikan GPS/Lokasi HP menyala.', 'error'); setIsLoading(false); setPendingAbsen(null); return
+        }
+        if (locationData.distance !== null && locationData.distance > 20) {
+          showNotification('Maaf anda melakukan Absensi bukan pada SMP Negeri 1 Lembo', 'error'); setIsLoading(false); setPendingAbsen(null); return
+        }
       }
 
       const logRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'attendance_logs'))
-      await setDoc(logRef, { type: String(type), timestamp: new Date().toISOString(), location: String(locationData.address), photo: photo || null, document: documentName ? String(documentName) : null, alasan: alasan ? String(alasan) : null, startDate: startDate ? String(startDate) : null, endDate: endDate ? String(endDate) : null, approvalStatus: approvalStatus ? String(approvalStatus) : 'Disetujui', nip: String(userNip), name: String(userName), isActive: true })
+      await setDoc(logRef, {
+        type: String(type), timestamp: new Date().toISOString(), location: String(locationData.address), photo: photo || null, document: documentName ? String(documentName) : null, alasan: alasan ? String(alasan) : null, startDate: startDate ? String(startDate) : null, endDate: endDate ? String(endDate) : null, approvalStatus: approvalStatus ? String(approvalStatus) : 'Disetujui', nip: String(userNip), name: String(userName), isActive: true,
+      })
 
       if (type === 'Masuk' || type === 'Hadir Terlambat' || type === 'Keluar') setIsCheckedIn(type === 'Masuk' || type === 'Hadir Terlambat')
       showNotification(`Berhasil memproses pengajuan ${type}!`, 'success')
@@ -473,7 +609,8 @@ export default function App() {
   }
 
   const handleFileChange = e => {
-    const file = e.target.files[0]; if (!file) return
+    const file = e.target.files[0]
+    if (!file) return
     processImageUpload(file, base64 => { setSpecialAbsenData({ ...specialAbsenData, file: file, fileName: file.name, photoBase64: base64 }) })
   }
 
@@ -484,12 +621,16 @@ export default function App() {
 
     const currentUserData = employees.find(e => String(e.nip) === String(userNip))
     const status = currentUserData?.dept === 'Kepala Sekolah' ? 'Disetujui' : 'Menunggu Persetujuan Kepsek'
+
     setShowSpecialModal(false)
-    handleAbsen({ type: specialAbsenData.type, photo: specialAbsenData.photoBase64, documentName: specialAbsenData.fileName, alasan: specialAbsenData.alasan, startDate: specialAbsenData.startDate, endDate: specialAbsenData.endDate, approvalStatus: status })
+    handleAbsen({
+      type: specialAbsenData.type, photo: specialAbsenData.photoBase64, documentName: specialAbsenData.fileName, alasan: specialAbsenData.alasan, startDate: specialAbsenData.startDate, endDate: specialAbsenData.endDate, approvalStatus: status,
+    })
   }
 
   const handleParentFileChange = e => {
-    const file = e.target.files[0]; if (!file) return
+    const file = e.target.files[0]
+    if (!file) return
     processImageUpload(file, base64 => { setParentSpecialData({ ...parentSpecialData, photoBase64: base64, fileName: file.name }) })
   }
 
@@ -500,40 +641,53 @@ export default function App() {
     setIsLoading(true)
     try {
       const studentInfo = students.find(s => String(s.nisn) === String(searchedNisn))
-      await setDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'student_attendance_logs')), { nisn: String(studentInfo.nisn), name: String(studentInfo.name), kelas: String(studentInfo.kelas), type: String(parentSpecialData.type), alasan: String(parentSpecialData.alasan), startDate: String(parentSpecialData.startDate), endDate: String(parentSpecialData.endDate), approvalStatus: 'Menunggu Persetujuan Guru', timestamp: new Date().toISOString(), scannedBy: 'Portal Orang Tua', photoUrl: parentSpecialData.photoBase64 })
+      await setDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'student_attendance_logs')), {
+        nisn: String(studentInfo.nisn), name: String(studentInfo.name), kelas: String(studentInfo.kelas), type: String(parentSpecialData.type), alasan: String(parentSpecialData.alasan), startDate: String(parentSpecialData.startDate), endDate: String(parentSpecialData.endDate), approvalStatus: 'Menunggu Persetujuan Guru', timestamp: new Date().toISOString(), scannedBy: 'Portal Orang Tua', photoUrl: parentSpecialData.photoBase64,
+      })
       showNotification(`Pengajuan ${parentSpecialData.type} berhasil dikirim!`, 'success')
       setShowParentSpecialModal(false)
     } catch (error) { showNotification('Gagal mengirim pengajuan.', 'error') } 
     finally { setIsLoading(false) }
   }
 
-  const handleApproveLog = async (collectionName, id) => {
-    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id), { approvalStatus: 'Disetujui', approvedBy: String(userName) }); showNotification('Persetujuan berhasil diperbarui', 'success') } 
-    catch (e) { showNotification('Gagal memproses persetujuan', 'error') }
+  const handleApproveLog = async (collectionName, id, currentStatus) => {
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id), { approvalStatus: 'Disetujui', approvedBy: String(userName) })
+      showNotification('Persetujuan berhasil diperbarui', 'success')
+    } catch (e) { showNotification('Gagal memproses persetujuan', 'error') }
   }
 
   const handleRejectLog = async (collectionName, id) => {
-    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id), { approvalStatus: 'Ditolak', approvedBy: String(userName) }); showNotification('Pengajuan telah ditolak', 'success') } 
-    catch (e) { showNotification('Gagal menolak pengajuan', 'error') }
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id), { approvalStatus: 'Ditolak', approvedBy: String(userName) })
+      showNotification('Pengajuan telah ditolak', 'success')
+    } catch (e) { showNotification('Gagal menolak pengajuan', 'error') }
   }
 
   const handleLogin = e => {
     e.preventDefault()
     if (credentials.nip === 'yusmukmin' && credentials.password === 'SuperAdmin') {
-      setUserRole('superadmin'); setUserNip('yusmukmin'); setUserName('Gr.YUSMUKMIN, S.I.P'); setIsLoggedIn(true); setActiveTab('admin-home'); showNotification('Login Super Admin Berhasil!', 'success')
+      setUserRole('superadmin'); setUserNip('yusmukmin'); setUserName('Gr.YUSMUKMIN, S.I.P'); setIsLoggedIn(true); setActiveTab('admin-home')
+      showNotification('Login Super Admin Berhasil!', 'success')
     } else if (credentials.nip.toLowerCase() === 'admin@absensi.com' && credentials.password === 'admin') {
-      setUserRole('admin'); setUserNip('Administrator'); setUserName('Administrator'); setIsLoggedIn(true); setActiveTab('admin-home'); showNotification('Login Admin Berhasil!', 'success')
+      setUserRole('admin'); setUserNip('Administrator'); setUserName('Administrator'); setIsLoggedIn(true); setActiveTab('admin-home')
+      showNotification('Login Admin Berhasil!', 'success')
     } else if (credentials.nip.length > 0 && credentials.password.length > 0) {
       const employee = employees.find(emp => String(emp.nip) === String(credentials.nip))
       if (employee) {
         if (employee.isActive === false) { showNotification('Akun Anda dinonaktifkan!', 'error'); return }
-        if (credentials.password === (employee.password || '123456')) { setUserRole('pegawai'); setUserNip(String(employee.nip)); setUserName(String(employee.name)); setIsLoggedIn(true); setActiveTab('home'); showNotification('Login Pegawai Berhasil!', 'success') } 
-        else showNotification('Password salah!', 'error')
+        if (credentials.password === (employee.password || '123456')) {
+          setUserRole('pegawai'); setUserNip(String(employee.nip)); setUserName(String(employee.name)); setIsLoggedIn(true); setActiveTab('home')
+          showNotification('Login Pegawai Berhasil!', 'success')
+        } else showNotification('Password salah!', 'error')
       } else showNotification('NIP / NIK tidak terdaftar!', 'error')
     } else showNotification('NIP/NIK dan Password wajib diisi!', 'error')
   }
 
-  const handleLogout = () => { setIsLoggedIn(false); setUserRole(null); setCredentials({ nip: '', password: '' }); setUserNip(''); setUserName(''); setActiveTab('home'); showNotification('Berhasil keluar akun', 'success') }
+  const handleLogout = () => {
+    setIsLoggedIn(false); setUserRole(null); setCredentials({ nip: '', password: '' }); setUserNip(''); setUserName(''); setActiveTab('home')
+    showNotification('Berhasil keluar akun', 'success')
+  }
 
   const submitForgotPassword = async e => {
     e.preventDefault()
@@ -542,8 +696,10 @@ export default function App() {
     const emp = employees.find(e => String(e.nip) === String(forgotNip))
     if (!emp) { showNotification('NIP / NIK tidak ditemukan!', 'error'); return }
     if (emp.resetRequested) { showNotification('Permintaan Anda sudah dikirim sebelumnya.', 'error'); return }
-    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.id), { resetRequested: true, requestedPassword: String(forgotNewPassword) }); setShowForgotModal(false); setForgotNip(''); setForgotNewPassword(''); showNotification('Permintaan ubah password dikirim!', 'success') } 
-    catch (error) { showNotification('Gagal mengirim permintaan.', 'error') }
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.id), { resetRequested: true, requestedPassword: String(forgotNewPassword) })
+      setShowForgotModal(false); setForgotNip(''); setForgotNewPassword(''); showNotification('Permintaan ubah password dikirim!', 'success')
+    } catch (error) { showNotification('Gagal mengirim permintaan.', 'error') }
   }
 
   const submitChangePassword = async e => {
@@ -552,31 +708,42 @@ export default function App() {
     if (newPassword.length < 6) { showNotification('Password baru minimal 6 karakter!', 'error'); return }
     const emp = employees.find(e => String(e.nip) === String(userNip))
     if (emp) {
-      try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.id), { password: String(newPassword) }); setShowChangePasswordModal(false); setNewPassword(''); showNotification('Password berhasil diperbarui!', 'success') } 
-      catch (error) { showNotification('Gagal mengubah password.', 'error') }
+      try {
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.id), { password: String(newPassword) })
+        setShowChangePasswordModal(false); setNewPassword(''); showNotification('Password berhasil diperbarui!', 'success')
+      } catch (error) { showNotification('Gagal mengubah password.', 'error') }
     }
   }
 
   const handleApproveResetPassword = async id => {
     if (!authUser) return
-    const emp = employees.find(e => e.id === id); if (!emp) return
-    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { password: String(emp.requestedPassword || '123456'), resetRequested: false, requestedPassword: null }); showNotification(`Password ${emp.name} diperbarui.`, 'success') } 
-    catch (error) { showNotification('Gagal menyetujui perubahan.', 'error') }
+    const emp = employees.find(e => e.id === id)
+    if (!emp) return
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { password: String(emp.requestedPassword || '123456'), resetRequested: false, requestedPassword: null })
+      showNotification(`Password ${emp.name} diperbarui.`, 'success')
+    } catch (error) { showNotification('Gagal menyetujui perubahan.', 'error') }
   }
 
   const handleSaveOpsHours = async (e) => {
     e.preventDefault(); setIsLoading(true);
-    try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'operational_hours'), editingOpsHours, { merge: true }); showNotification('Jam operasional diperbarui!', 'success'); setShowOpsHoursModal(false) } 
-    catch(err) { showNotification('Gagal menyimpan jam operasional.', 'error') }
-    setIsLoading(false)
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'operational_hours'), editingOpsHours, { merge: true });
+      showNotification('Jam operasional berhasil diperbarui!', 'success'); setShowOpsHoursModal(false);
+    } catch(err) { showNotification('Gagal menyimpan jam operasional.', 'error'); }
+    setIsLoading(false);
   }
 
   const handleAddEmployee = async e => {
     e.preventDefault()
     if (!authUser) return
     if (!newEmployee.name || !newEmployee.nip) { showNotification('Nama dan NIP harus diisi!', 'error'); return }
-    try { await setDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'employees')), { name: String(newEmployee.name), nip: String(newEmployee.nip), dept: String(newEmployee.dept), password: '123456', resetRequested: false, isActive: true, createdAt: new Date().toISOString() }); setNewEmployee({ name: '', nip: '', dept: 'Guru' }); setShowAddModal(false); showNotification('Pegawai ditambahkan!', 'success') } 
-    catch (err) { showNotification('Gagal menyimpan pegawai', 'error') }
+    try {
+      await setDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'employees')), {
+        name: String(newEmployee.name), nip: String(newEmployee.nip), dept: String(newEmployee.dept), password: '123456', resetRequested: false, isActive: true, createdAt: new Date().toISOString(),
+      })
+      setNewEmployee({ name: '', nip: '', dept: 'Guru' }); setShowAddModal(false); showNotification('Pegawai ditambahkan!', 'success')
+    } catch (err) { showNotification('Gagal menyimpan pegawai', 'error') }
   }
 
   const handleDeleteEmployee = async id => {
@@ -594,8 +761,10 @@ export default function App() {
   const handleDeactivateAllEmployees = async () => {
     if (!authUser) return
     setIsLoading(true)
-    try { const promises = employees.map(emp => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.id), { isActive: false })); await Promise.all(promises); showNotification('Semua akun dinonaktifkan', 'success'); setShowConfirmDeactivateAll(false) } 
-    catch (error) { showNotification('Gagal menonaktifkan', 'error') } 
+    try {
+      const promises = employees.map(emp => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.id), { isActive: false }))
+      await Promise.all(promises); showNotification('Semua akun dinonaktifkan', 'success'); setShowConfirmDeactivateAll(false)
+    } catch (error) { showNotification('Gagal menonaktifkan', 'error') } 
     finally { setIsLoading(false) }
   }
 
@@ -603,8 +772,12 @@ export default function App() {
     e.preventDefault()
     if (!authUser) return
     if (!newStudent.name || !newStudent.nisn) { showNotification('Wajib diisi!', 'error'); return }
-    try { await setDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'students')), { name: String(newStudent.name), nisn: String(newStudent.nisn), kelas: String(newStudent.kelas), parentPhone: String(newStudent.parentPhone), createdAt: new Date().toISOString() }); setNewStudent({ name: '', nisn: '', kelas: 'VII', parentPhone: '' }); setShowAddStudentModal(false); showNotification('Data siswa ditambahkan!', 'success') } 
-    catch (err) { showNotification('Gagal menyimpan', 'error') }
+    try {
+      await setDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'students')), {
+        name: String(newStudent.name), nisn: String(newStudent.nisn), kelas: String(newStudent.kelas), parentPhone: String(newStudent.parentPhone), createdAt: new Date().toISOString(),
+      })
+      setNewStudent({ name: '', nisn: '', kelas: 'VII', parentPhone: '' }); setShowAddStudentModal(false); showNotification('Data siswa ditambahkan!', 'success')
+    } catch (err) { showNotification('Gagal menyimpan', 'error') }
   }
 
   const handleEditStudent = async e => {
@@ -612,8 +785,12 @@ export default function App() {
     if (!authUser || !editingStudent) return
     if (!editingStudent.name || !editingStudent.nisn) { showNotification('Nama & NISN Wajib diisi!', 'error'); return }
     setIsLoading(true)
-    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', editingStudent.id), { name: String(editingStudent.name), nisn: String(editingStudent.nisn), kelas: String(editingStudent.kelas), parentPhone: String(editingStudent.parentPhone || '') }); setShowEditStudentModal(false); setEditingStudent(null); showNotification('Data diperbarui!', 'success') } 
-    catch (err) { showNotification('Gagal memperbarui', 'error') } 
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', editingStudent.id), {
+        name: String(editingStudent.name), nisn: String(editingStudent.nisn), kelas: String(editingStudent.kelas), parentPhone: String(editingStudent.parentPhone || ''),
+      })
+      setShowEditStudentModal(false); setEditingStudent(null); showNotification('Data diperbarui!', 'success')
+    } catch (err) { showNotification('Gagal memperbarui', 'error') } 
     finally { setIsLoading(false) }
   }
 
@@ -624,7 +801,8 @@ export default function App() {
   }
 
   const handleEmployeePhotoUpload = (e, empId) => {
-    const file = e.target.files[0]; if (!file || !authUser) return
+    const file = e.target.files[0]
+    if (!file || !authUser) return
     processImageUpload(file, async base64 => {
       try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', empId), { photoUrl: base64 }); showNotification('Foto diperbarui!', 'success') } 
       catch (error) { showNotification('Gagal mengunggah.', 'error') }
@@ -632,7 +810,8 @@ export default function App() {
   }
 
   const handleStudentPhotoUpload = (e, studentId) => {
-    const file = e.target.files[0]; if (!file || !authUser) return
+    const file = e.target.files[0]
+    if (!file || !authUser) return
     processImageUpload(file, async base64 => {
       try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', studentId), { photoUrl: base64 }); showNotification('Foto diperbarui!', 'success') } 
       catch (error) { showNotification('Gagal mengunggah.', 'error') }
@@ -641,14 +820,18 @@ export default function App() {
 
   const handleDeleteLogGroup = async logIds => {
     if (!authUser) return
-    try { for (const id of logIds) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attendance_logs', id)); showNotification('Riwayat dihapus', 'success') } 
-    catch (err) { showNotification('Gagal menghapus', 'error') }
+    try {
+      for (const id of logIds) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attendance_logs', id))
+      showNotification('Riwayat dihapus', 'success')
+    } catch (err) { showNotification('Gagal menghapus', 'error') }
   }
 
   const handleToggleLogStatusGroup = async (logIds, currentStatus) => {
     if (!authUser) return
-    try { for (const id of logIds) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attendance_logs', id), { isActive: !currentStatus }); showNotification(`Status diubah`, 'success') } 
-    catch (error) { showNotification('Gagal mengubah', 'error') }
+    try {
+      for (const id of logIds) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attendance_logs', id), { isActive: !currentStatus })
+      showNotification(`Status diubah`, 'success')
+    } catch (error) { showNotification('Gagal mengubah', 'error') }
   }
 
   const handleDeleteStudentLog = async logId => {
@@ -705,16 +888,21 @@ export default function App() {
   }
 
   const handleLogoUpload = (e, type) => {
-    const file = e.target.files[0]; if (!file || !authUser) return
+    const file = e.target.files[0]
+    if (!file || !authUser) return
     const reader = new FileReader()
     reader.onload = event => {
       const img = new Image()
       img.onload = async () => {
-        const canvas = document.createElement('canvas'); const scaleSize = 150 / img.width
+        const canvas = document.createElement('canvas')
+        const scaleSize = 150 / img.width
         canvas.width = 150; canvas.height = img.height * scaleSize
-        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-        try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'logos'), { [type]: canvas.toDataURL('image/png', 0.8) }, { merge: true }); showNotification('Logo diperbarui!', 'success') } 
-        catch (error) { showNotification('Gagal menyimpan logo', 'error') }
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        try {
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'logos'), { [type]: canvas.toDataURL('image/png', 0.8) }, { merge: true })
+          showNotification('Logo diperbarui!', 'success')
+        } catch (error) { showNotification('Gagal menyimpan logo', 'error') }
       }
       img.src = event.target.result
     }
@@ -722,17 +910,36 @@ export default function App() {
   }
 
   const generateEmployeeReportData = () => {
-    const logsInMonth = logs.filter(l => { const d = new Date(l.timestamp); return d.getMonth() + 1 === filterMonth && d.getFullYear() === filterYear })
+    const logsFiltered = logs.filter(l => {
+      const d = new Date(l.timestamp)
+      if (filterType === 'Bulan') return d.getMonth() + 1 === filterMonth && d.getFullYear() === filterYear
+      return isDateInRange(d, filterStartDate, filterEndDate)
+    })
+
     const activeDaysSet = new Set()
-    logsInMonth.forEach(l => { if (['Masuk', 'Keluar', 'Pulang'].includes(l.type)) activeDaysSet.add(new Date(l.timestamp).toDateString()) })
+    logsFiltered.forEach(l => {
+      if (['Masuk', 'Keluar', 'Pulang'].includes(l.type)) activeDaysSet.add(new Date(l.timestamp).toDateString())
+    })
+
     logs.forEach(l => {
       if (['Izin', 'Sakit', 'Tugas Luar'].includes(l.type) && l.startDate && l.endDate) {
-        let current = new Date(l.startDate); current.setHours(0, 0, 0, 0)
-        const end = new Date(l.endDate); end.setHours(0, 0, 0, 0)
+        let current = new Date(l.startDate)
+        current.setHours(0, 0, 0, 0)
+        const end = new Date(l.endDate)
+        end.setHours(0, 0, 0, 0)
         let safeLimit = 0
         while (current <= end && safeLimit < 100) {
-          if (current.getMonth() + 1 === filterMonth && current.getFullYear() === filterYear) { if (current.getDay() !== 0) activeDaysSet.add(current.toDateString()) }
-          current.setDate(current.getDate() + 1); safeLimit++
+          if (filterType === 'Bulan') {
+            if (current.getMonth() + 1 === filterMonth && current.getFullYear() === filterYear) {
+              if (current.getDay() !== 0) activeDaysSet.add(current.toDateString())
+            }
+          } else {
+            if (isDateInRange(current, filterStartDate, filterEndDate)) {
+              if (current.getDay() !== 0) activeDaysSet.add(current.toDateString())
+            }
+          }
+          current.setDate(current.getDate() + 1)
+          safeLimit++
         }
       }
     })
@@ -740,15 +947,20 @@ export default function App() {
     const activeDaysStrings = [...activeDaysSet]
     const activeDays = activeDaysStrings.map(d => new Date(d)).sort((a, b) => b - a)
 
-    const reportData = []; let tHadir = 0, tLambat = 0, tTL = 0, tIzin = 0, tSakit = 0, tAlpa = 0
+    const reportData = []
+    let tHadir = 0, tLambat = 0, tTL = 0, tIzin = 0, tSakit = 0, tAlpa = 0
 
     activeDays.forEach(dateObj => {
       const dateStr = dateObj.toLocaleDateString('id-ID')
       const rawDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
 
       employees.forEach(emp => {
-        const dayLogs = logsInMonth.filter(l => String(l.nip) === String(emp.nip) && new Date(l.timestamp).toDateString() === dateObj.toDateString() && l.isActive !== false)
-        const leaveRequest = logs.find(l => String(l.nip) === String(emp.nip) && ['Izin', 'Sakit', 'Tugas Luar'].includes(l.type) && l.isActive !== false && isDateInRange(dateObj, l.startDate, l.endDate))
+        const dayLogs = logsFiltered.filter(
+          l => String(l.nip) === String(emp.nip) && new Date(l.timestamp).toDateString() === dateObj.toDateString() && l.isActive !== false
+        )
+        const leaveRequest = logs.find(
+          l => String(l.nip) === String(emp.nip) && ['Izin', 'Sakit', 'Tugas Luar'].includes(l.type) && l.isActive !== false && isDateInRange(dateObj, l.startDate, l.endDate)
+        )
 
         let timeMasuk = '-', timePulang = '-', status = 'Alpa', statusKeluar = '-', alasan = '', logIds = [], hasMasuk = false, hasPulang = false
 
@@ -762,7 +974,9 @@ export default function App() {
             if (logMins > batasMins || log.type === 'Hadir Terlambat') status = 'Terlambat'
             else status = 'Hadir'
           }
-          if (log.type === 'Keluar' || log.type === 'Pulang') { timePulang = t; hasPulang = true }
+          if (log.type === 'Keluar' || log.type === 'Pulang') {
+            timePulang = t; hasPulang = true
+          }
         })
 
         if (leaveRequest) {
@@ -772,7 +986,7 @@ export default function App() {
             if (hasMasuk) { timePulang = 'Hadir'; statusKeluar = leaveRequest.type } 
             else { status = leaveRequest.type; statusKeluar = leaveRequest.type; timeMasuk = leaveRequest.type; timePulang = leaveRequest.type }
           } else if (leaveRequest.approvalStatus === 'Ditolak') {
-            alasan = leaveRequest.alasan ? `${leaveRequest.alasan} (Ditolak)` : `Ditolak`
+            alasan = leaveRequest.alasan ? `${leaveRequest.alasan} (Ditolak Kepsek)` : `Ditolak Kepsek`
             if (hasMasuk && hasPulang) { statusKeluar = 'Selesai' } 
             else if (hasMasuk && !hasPulang) {
               const now = new Date()
@@ -824,12 +1038,17 @@ export default function App() {
         else if (status === 'Sakit') statusCode = 'S'
         else if (status === 'Alpa') statusCode = 'A'
 
-        reportData.push({ id: `${emp.nip}_${rawDate}`, logIds, name: emp.name, nip: emp.nip, dept: emp.dept, date: dateStr, rawDate, time: timeMasuk, timeKeluar: timePulang, statusKeluar, status, alasan, isActive: true, statusCode, dayOfWeek: dateObj.getDay() })
+        const dayOfWeek = dateObj.getDay()
+
+        reportData.push({ id: `${emp.nip}_${rawDate}`, logIds, name: emp.name, nip: emp.nip, dept: emp.dept, date: dateStr, rawDate, time: timeMasuk, timeKeluar: timePulang, statusKeluar, status, alasan, isActive: true, statusCode, dayOfWeek })
       })
     })
 
     reportData.sort((a, b) => b.rawDate.localeCompare(a.rawDate))
-    const periodStr = String(new Date(filterYear, filterMonth - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }))
+    const periodStr = filterType === 'Bulan' 
+      ? String(new Date(filterYear, filterMonth - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }))
+      : `${new Date(filterStartDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric'})} - ${new Date(filterEndDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric'})}`
+    
     return { reportData, summary: { hadir: tHadir, lambat: tLambat, izin: tIzin, sakit: tSakit, tugasLuar: tTL, alpa: tAlpa, periodStr } }
   }
 
@@ -839,17 +1058,36 @@ export default function App() {
 
     studentLogs.forEach(l => {
       const d = new Date(l.timestamp)
-      if (d.getMonth() + 1 === filterMonth && d.getFullYear() === filterYear) { if (l.type === 'Masuk' || l.type === 'Pulang') activeDaysSet.add(d.toDateString()) }
+      if (filterType === 'Bulan') {
+        if (d.getMonth() + 1 === filterMonth && d.getFullYear() === filterYear) {
+          if (l.type === 'Masuk' || l.type === 'Pulang') activeDaysSet.add(d.toDateString())
+        }
+      } else {
+        if (isDateInRange(d, filterStartDate, filterEndDate)) {
+          if (l.type === 'Masuk' || l.type === 'Pulang') activeDaysSet.add(d.toDateString())
+        }
+      }
     })
 
     studentLogs.forEach(l => {
       if (['Izin', 'Sakit'].includes(l.type) && l.startDate && l.endDate) {
-        let current = new Date(l.startDate); current.setHours(0, 0, 0, 0)
-        const end = new Date(l.endDate); end.setHours(0, 0, 0, 0)
+        let current = new Date(l.startDate)
+        current.setHours(0, 0, 0, 0)
+        const end = new Date(l.endDate)
+        end.setHours(0, 0, 0, 0)
         let safeLimit = 0
         while (current <= end && safeLimit < 100) {
-          if (current.getMonth() + 1 === filterMonth && current.getFullYear() === filterYear) { if (current.getDay() !== 0) activeDaysSet.add(current.toDateString()) }
-          current.setDate(current.getDate() + 1); safeLimit++
+          if (filterType === 'Bulan') {
+            if (current.getMonth() + 1 === filterMonth && current.getFullYear() === filterYear) {
+              if (current.getDay() !== 0) activeDaysSet.add(current.toDateString())
+            }
+          } else {
+            if (isDateInRange(current, filterStartDate, filterEndDate)) {
+              if (current.getDay() !== 0) activeDaysSet.add(current.toDateString())
+            }
+          }
+          current.setDate(current.getDate() + 1)
+          safeLimit++
         }
       }
     })
@@ -857,15 +1095,20 @@ export default function App() {
     const activeDaysStrings = [...activeDaysSet]
     const activeDays = activeDaysStrings.map(d => new Date(d)).sort((a, b) => a - b)
 
-    const reportData = []; let totalHadir = 0, totalIzin = 0, totalSakit = 0, totalAlpa = 0
+    const reportData = []
+    let totalHadir = 0, totalIzin = 0, totalSakit = 0, totalAlpa = 0
 
     activeDays.forEach(dateObj => {
       const dateStr = dateObj.toLocaleDateString('id-ID')
       const rawDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
 
       filteredStudents.forEach(student => {
-        const dayLogs = studentLogs.filter(l => String(l.nisn) === String(student.nisn) && new Date(l.timestamp).toDateString() === dateObj.toDateString())
-        const leaveRequest = studentLogs.find(l => String(l.nisn) === String(student.nisn) && ['Izin', 'Sakit'].includes(l.type) && isDateInRange(dateObj, l.startDate, l.endDate))
+        const dayLogs = studentLogs.filter(
+          l => String(l.nisn) === String(student.nisn) && new Date(l.timestamp).toDateString() === dateObj.toDateString()
+        )
+        const leaveRequest = studentLogs.find(
+          l => String(l.nisn) === String(student.nisn) && ['Izin', 'Sakit'].includes(l.type) && isDateInRange(dateObj, l.startDate, l.endDate)
+        )
 
         let timeMasuk = '-', timePulang = '-', status = 'Alpa', statusKeluar = '-', keterangan = '-', hasMasuk = false, hasPulang = false
 
@@ -928,13 +1171,20 @@ export default function App() {
         else if (status === 'Izin') statusCode = 'I'
         else if (status === 'Sakit') statusCode = 'S'
         else if (status === 'Alpa') statusCode = 'A'
+        const dayOfWeek = dateObj.getDay()
 
-        reportData.push({ name: student.name, nisn: student.nisn, kelas: student.kelas, dateStr, rawDate, timeMasuk, timePulang, statusKeluar, status, keterangan, statusCode, dayOfWeek: dateObj.getDay() })
+        reportData.push({ name: student.name, nisn: student.nisn, kelas: student.kelas, dateStr, rawDate, timeMasuk, timePulang, statusKeluar, status, keterangan, statusCode, dayOfWeek })
       })
     })
 
-    reportData.sort((a, b) => { if (a.rawDate === b.rawDate) return a.name.localeCompare(b.name); return a.rawDate.localeCompare(b.rawDate) })
-    const periodStr = String(new Date(filterYear, filterMonth - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }))
+    reportData.sort((a, b) => {
+      if (a.rawDate === b.rawDate) return a.name.localeCompare(b.name)
+      return a.rawDate.localeCompare(b.rawDate)
+    })
+
+    const periodStr = filterType === 'Bulan' 
+      ? String(new Date(filterYear, filterMonth - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }))
+      : `${new Date(filterStartDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric'})} - ${new Date(filterEndDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric'})}`
     return { reportData, totals: { hadir: totalHadir, izin: totalIzin, sakit: totalSakit, alpa: totalAlpa }, periodStr }
   }
 
@@ -1002,6 +1252,7 @@ export default function App() {
     } catch (error) { showNotification('Gagal membuka fitur cetak', 'error') }
   }
 
+  // --- RENDER FUNCTIONS ---
   const renderLogin = () => (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 w-full animate-fade-in relative" style={{ backgroundColor: '#f8fafc', backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='138.56' viewBox='0 0 80 138.56' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23cbd5e1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M40 23.09L0 46.19v46.19L40 115.47l40-23.09V46.19L40 23.09z'/%3E%3Cpath d='M40 69.28v46.19M0 46.19l40 23.09 40-23.09M40 23.09V-23.09M-40 115.47L0 92.38M120 115.47l-40-23.09'/%3E%3C/g%3E%3C/svg%3E")`, backgroundSize: '80px 138.56px', backgroundPosition: 'center' }}>
       <div className="w-full max-w-md bg-white/95 backdrop-blur-sm p-8 sm:p-10 rounded-[2rem] shadow-2xl border border-white relative z-10 flex flex-col items-center">
@@ -1052,7 +1303,6 @@ export default function App() {
   const renderParentPortal = () => {
     const studentInfo = students.find(s => String(s.nisn) === String(searchedNisn))
     const history = studentLogs.filter(l => String(l.nisn) === String(searchedNisn))
-
     const todayStr = new Date().toDateString()
     const nowHour = new Date().getHours()
     const dailyLogs = {}
@@ -1117,6 +1367,9 @@ export default function App() {
         else if (item.status.includes('Alpa')) countAlpha++
       }
     })
+
+    const todayDateObj = new Date()
+    const todayString = `${todayDateObj.getFullYear()}-${String(todayDateObj.getMonth() + 1).padStart(2, '0')}-${String(todayDateObj.getDate()).padStart(2, '0')}`
 
     return (
       <div className="flex flex-col items-center min-h-screen p-6 w-full animate-fade-in relative" style={{ backgroundColor: '#f8fafc', backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='138.56' viewBox='0 0 80 138.56' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23cbd5e1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M40 23.09L0 46.19v46.19L40 115.47l40-23.09V46.19L40 23.09z'/%3E%3Cpath d='M40 69.28v46.19M0 46.19l40 23.09 40-23.09M40 23.09V-23.09M-40 115.47L0 92.38M120 115.47l-40-23.09'/%3E%3C/g%3E%3C/svg%3E")`, backgroundSize: '80px 138.56px', backgroundPosition: 'center' }}>
@@ -1420,11 +1673,73 @@ export default function App() {
       </div>
       <div className="mt-2 mb-8 border-b border-gray-200 pb-6">
         <h3 className="text-md font-bold text-gray-800 mb-4 flex items-center gap-2"><ClipboardList size={18} className="text-indigo-600" /> Cetak Laporan Siswa</h3>
-        <div className="flex gap-2 mb-4">
-          <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Bulan</label><select value={filterMonth} onChange={e => setFilterMonth(parseInt(e.target.value))} className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium">{['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (<option key={i} value={i + 1}>{String(m)}</option>))}</select></div>
-          <div className="w-[30%]"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tahun</label><select value={filterYear} onChange={e => setFilterYear(parseInt(e.target.value))} className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium">{[2024, 2025, 2026, 2027].map(y => (<option key={y} value={y}>{String(y)}</option>))}</select></div>
-          <div className="w-[30%]"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Kelas</label><select value={filterKelas} onChange={e => setFilterKelas(e.target.value)} className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium"><option value="Semua">Semua</option><option value="VII">VII</option><option value="VIII">VIII</option><option value="IX">IX</option></select></div>
+        
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="flex gap-2 items-end">
+            <div className="w-1/3">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Mode Filter</label>
+              <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium">
+                <option value="Bulan">Bulan & Tahun</option>
+                <option value="Tanggal">Rentang Tanggal</option>
+              </select>
+            </div>
+            {filterType === 'Bulan' ? (
+              <>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Bulan</label>
+                  <select
+                    value={filterMonth}
+                    onChange={e => setFilterMonth(parseInt(e.target.value))}
+                    className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium"
+                  >
+                    {[
+                      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+                    ].map((m, i) => (
+                      <option key={i} value={i + 1}>{String(m)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-1/3">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tahun</label>
+                  <select
+                    value={filterYear}
+                    onChange={e => setFilterYear(parseInt(e.target.value))}
+                    className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium"
+                  >
+                    {[2024, 2025, 2026, 2027].map(y => (
+                      <option key={y} value={y}>{String(y)}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Dari Tanggal</label>
+                  <input type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sampai</label>
+                  <input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium" />
+                </div>
+              </>
+            )}
+          </div>
+          <div className="w-full">
+            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Filter Kelas</label>
+            <select
+              value={filterKelas}
+              onChange={e => setFilterKelas(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 font-medium"
+            >
+              <option value="Semua">Semua</option>
+              <option value="VII">VII</option>
+              <option value="VIII">VIII</option>
+              <option value="IX">IX</option>
+            </select>
+          </div>
         </div>
+
         <div className="grid grid-cols-2 gap-3">
           <button onClick={handleDownloadStudentPDF} className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold py-3 px-2 rounded-xl transition-colors border border-red-100"><FileText size={18} /><span className="text-xs sm:text-sm">Unduh PDF</span></button>
           <button onClick={handleDownloadStudentExcel} className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 hover:bg-green-100 font-bold py-3 px-2 rounded-xl transition-colors border border-green-100"><FileSpreadsheet size={18} /><span className="text-xs sm:text-sm">Unduh Excel</span></button>
@@ -1665,19 +1980,55 @@ export default function App() {
     <div className="flex flex-col p-6 w-full pb-24 animate-fade-in">
       <h2 className="text-xl font-bold text-gray-800 mb-4">Laporan Kehadiran Pegawai</h2>
 
-      <div className="flex gap-3 mb-4">
-        <div className="flex-1">
-          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Filter Bulan</label>
-          <select value={filterMonth} onChange={e => setFilterMonth(parseInt(e.target.value))} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium">
-            {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (<option key={i} value={i + 1}>{String(m)}</option>))}
-          </select>
-        </div>
+      <div className="flex gap-2 mb-4 items-end">
         <div className="w-1/3">
-          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Filter Tahun</label>
-          <select value={filterYear} onChange={e => setFilterYear(parseInt(e.target.value))} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium">
-            {[2024, 2025, 2026, 2027].map(y => (<option key={y} value={y}>{String(y)}</option>))}
+          <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Mode Filter</label>
+          <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium">
+            <option value="Bulan">Bulan & Tahun</option>
+            <option value="Tanggal">Rentang Tanggal</option>
           </select>
         </div>
+        {filterType === 'Bulan' ? (
+          <>
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Filter Bulan</label>
+              <select
+                value={filterMonth}
+                onChange={e => setFilterMonth(parseInt(e.target.value))}
+                className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium"
+              >
+                {[
+                  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+                ].map((m, i) => (
+                  <option key={i} value={i + 1}>{String(m)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-1/4">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tahun</label>
+              <select
+                value={filterYear}
+                onChange={e => setFilterYear(parseInt(e.target.value))}
+                className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium"
+              >
+                {[2024, 2025, 2026, 2027].map(y => (
+                  <option key={y} value={y}>{String(y)}</option>
+                ))}
+              </select>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Dari Tanggal</label>
+              <input type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sampai</label>
+              <input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium" />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3">
@@ -1728,104 +2079,29 @@ export default function App() {
     return (
       <div className="flex flex-col items-center p-6 w-full animate-fade-in">
         <h2 className="text-xl font-bold text-gray-800 mb-8 self-start">Profil Saya</h2>
-
-        <div
-          className={`relative w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-md overflow-hidden border-4 border-white ${
-            ['admin', 'superadmin'].includes(userRole) ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'
-          }`}
-        >
-          {userRole === 'pegawai' && currentUserData?.photoUrl ? (
-            <img src={currentUserData.photoUrl} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <User size={48} />
-          )}
+        <div className={`relative w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-md overflow-hidden border-4 border-white ${['admin', 'superadmin'].includes(userRole) ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'}`}>
+          {userRole === 'pegawai' && currentUserData?.photoUrl ? <img src={currentUserData.photoUrl} alt="Profile" className="w-full h-full object-cover" /> : <User size={48} />}
         </div>
         <h1 className="text-2xl font-bold text-gray-800 uppercase text-center">{String(userName || 'Pegawai')}</h1>
         <p className="text-gray-500 mb-8 text-center font-medium">SMP NEGERI 1 LEMBO</p>
 
         <div className="w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-          <div className="p-4 border-b border-gray-50 flex justify-between">
-            <span className="text-gray-500">
-              {['admin', 'superadmin'].includes(userRole) ? 'Hak Akses' : 'NIP / NIK'}
-            </span>
-            <span className="font-semibold text-gray-800">
-              {String(
-                userRole === 'superadmin'
-                  ? 'Super Admin'
-                  : userRole === 'admin'
-                  ? 'Admin Sistem'
-                  : userNip || 'Belum diatur'
-              )}
-            </span>
-          </div>
-          <div className="p-4 border-b border-gray-50 flex justify-between">
-            <span className="text-gray-500">Departemen</span>
-            <span className="font-semibold text-gray-800">
-              {['admin', 'superadmin'].includes(userRole) ? 'Manajemen / Admin' : 'Umum'}
-            </span>
-          </div>
-          <div className="p-4 flex justify-between">
-            <span className="text-gray-500">Status</span>
-            <span className="font-semibold text-green-600">Aktif</span>
-          </div>
+          <div className="p-4 border-b border-gray-50 flex justify-between"><span className="text-gray-500">{['admin', 'superadmin'].includes(userRole) ? 'Hak Akses' : 'NIP / NIK'}</span><span className="font-semibold text-gray-800">{String(userRole === 'superadmin' ? 'Super Admin' : userRole === 'admin' ? 'Admin Sistem' : userNip || 'Belum diatur')}</span></div>
+          <div className="p-4 border-b border-gray-50 flex justify-between"><span className="text-gray-500">Departemen</span><span className="font-semibold text-gray-800">{['admin', 'superadmin'].includes(userRole) ? 'Manajemen / Admin' : 'Umum'}</span></div>
+          <div className="p-4 flex justify-between"><span className="text-gray-500">Status</span><span className="font-semibold text-green-600">Aktif</span></div>
         </div>
 
         <div className="w-full space-y-3">
           {['admin', 'superadmin'].includes(userRole) && (
             <>
-              <button
-                onClick={() => setShowLogoModal(true)}
-                className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold py-3 px-4 rounded-xl transition-colors border border-blue-100"
-              >
-                <ImageIcon size={20} />
-                Pengaturan Logo & Sistem
-              </button>
-              <button
-                onClick={() => {
-                  setEditingOpsHours(operationalHours)
-                  setShowOpsHoursModal(true)
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-purple-50 text-purple-600 hover:bg-purple-100 font-bold py-3 px-4 rounded-xl transition-colors border border-purple-100"
-              >
-                <Clock size={20} />
-                Pengaturan Jam Operasional
-              </button>
+              <button onClick={() => setShowLogoModal(true)} className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold py-3 px-4 rounded-xl transition-colors border border-blue-100"><ImageIcon size={20} />Pengaturan Logo & Sistem</button>
+              <button onClick={() => { setEditingOpsHours(operationalHours); setShowOpsHoursModal(true) }} className="w-full flex items-center justify-center gap-2 bg-purple-50 text-purple-600 hover:bg-purple-100 font-bold py-3 px-4 rounded-xl transition-colors border border-purple-100"><Clock size={20} />Pengaturan Jam Operasional</button>
             </>
           )}
-
-          <button
-            onClick={() => setShowChangePasswordModal(true)}
-            className="w-full flex items-center justify-center gap-2 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-bold py-3 px-4 rounded-xl transition-colors border border-yellow-100"
-          >
-            <Key size={20} />
-            Ubah Password
-          </button>
-
-          {isInstallable && (
-            <button
-              onClick={handleInstallApp}
-              className="w-full flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold py-3 px-4 rounded-xl transition-colors border border-indigo-100"
-            >
-              <Download size={20} />
-              Instal Aplikasi ke Layar HP
-            </button>
-          )}
-
-          <button
-            onClick={() => setShowInfoModal(true)}
-            className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors border border-gray-200"
-          >
-            <Info size={20} />
-            Tentang Aplikasi
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold py-3 px-4 rounded-xl transition-colors border border-red-100"
-          >
-            <LogOut size={20} />
-            Keluar Akun
-          </button>
+          <button onClick={() => setShowChangePasswordModal(true)} className="w-full flex items-center justify-center gap-2 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-bold py-3 px-4 rounded-xl transition-colors border border-yellow-100"><Key size={20} />Ubah Password</button>
+          {isInstallable && <button onClick={handleInstallApp} className="w-full flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold py-3 px-4 rounded-xl transition-colors border border-indigo-100"><Download size={20} />Instal Aplikasi ke Layar HP</button>}
+          <button onClick={() => setShowInfoModal(true)} className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-gray-100 font-bold py-3 px-4 rounded-xl transition-colors border border-gray-200"><Info size={20} />Tentang Aplikasi</button>
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold py-3 px-4 rounded-xl transition-colors border border-red-100"><LogOut size={20} />Keluar Akun</button>
         </div>
       </div>
     )
@@ -1980,8 +2256,8 @@ export default function App() {
               <p className="text-xs text-gray-500 mb-5 leading-relaxed">Silakan unggah <strong className="text-gray-700">{specialAbsenData.type === 'Tugas Luar' ? 'Surat Tugas' : specialAbsenData.type === 'Izin' ? 'Surat Keterangan Izin' : 'Surat Sakit dari Dokter'}</strong> beserta alasan pengajuan.</p>
               <form onSubmit={submitSpecialAbsen} className="space-y-4">
                 <div className="flex gap-2">
-                  <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Dari Tanggal</label><input type="date" value={specialAbsenData.startDate} min={todayString} onChange={e => setSpecialAbsenData({ ...specialAbsenData, startDate: e.target.value })} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white" required /></div>
-                  <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sampai Tanggal</label><input type="date" value={specialAbsenData.endDate} min={specialAbsenData.startDate || todayString} onChange={e => setSpecialAbsenData({ ...specialAbsenData, endDate: e.target.value })} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white" required /></div>
+                  <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Dari Tanggal</label><input type="date" value={specialAbsenData.startDate} min={getTodayString()} onChange={e => setSpecialAbsenData({ ...specialAbsenData, startDate: e.target.value })} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white" required /></div>
+                  <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sampai Tanggal</label><input type="date" value={specialAbsenData.endDate} min={specialAbsenData.startDate || getTodayString()} onChange={e => setSpecialAbsenData({ ...specialAbsenData, endDate: e.target.value })} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white" required /></div>
                 </div>
                 <div className="border-2 border-dashed border-blue-300 rounded-xl p-6 flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-100 transition relative">
                   <input type="file" onChange={handleFileChange} accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
@@ -2005,8 +2281,8 @@ export default function App() {
               <p className="text-xs text-gray-500 mb-5 leading-relaxed">Silakan unggah foto surat keterangan {parentSpecialData.type === 'Izin' ? 'izin' : 'sakit dari dokter/orang tua'} dan isi alasan ketidakhadiran anak Anda.</p>
               <form onSubmit={submitParentSpecial} className="space-y-4">
                 <div className="flex gap-2">
-                  <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Dari Tanggal</label><input type="date" value={parentSpecialData.startDate} min={todayString} onChange={e => setParentSpecialData({ ...parentSpecialData, startDate: e.target.value })} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white" required /></div>
-                  <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sampai Tanggal</label><input type="date" value={parentSpecialData.endDate} min={parentSpecialData.startDate || todayString} onChange={e => setParentSpecialData({ ...parentSpecialData, endDate: e.target.value })} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white" required /></div>
+                  <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Dari Tanggal</label><input type="date" value={parentSpecialData.startDate} min={getTodayString()} onChange={e => setParentSpecialData({ ...parentSpecialData, startDate: e.target.value })} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white" required /></div>
+                  <div className="flex-1"><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sampai Tanggal</label><input type="date" value={parentSpecialData.endDate} min={parentSpecialData.startDate || getTodayString()} onChange={e => setParentSpecialData({ ...parentSpecialData, endDate: e.target.value })} className="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white" required /></div>
                 </div>
                 <div className="border-2 border-dashed border-indigo-300 rounded-xl p-6 flex flex-col items-center justify-center bg-indigo-50 hover:bg-indigo-100 transition relative">
                   <input type="file" onChange={handleParentFileChange} accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required={!parentSpecialData.photoBase64} />
@@ -2128,9 +2404,7 @@ export default function App() {
         {showCamera && (
           <div className="fixed inset-0 bg-black z-[60] flex flex-col animate-fade-in">
             <div className="flex justify-between items-center p-4 text-white bg-gradient-to-b from-black/80 to-transparent absolute top-0 w-full z-10">
-              <span className="font-semibold text-sm">
-                Foto Kehadiran {pendingAbsen?.type === 'Izin' ? '(Bukti Izin)' : pendingAbsen?.type === 'Hadir Terlambat' ? '(Terlambat)' : isCheckedIn ? '(Keluar)' : '(Masuk)'}
-              </span>
+              <span className="font-semibold text-sm">Foto Kehadiran {pendingAbsen?.type === 'Izin' ? '(Bukti Izin)' : pendingAbsen?.type === 'Hadir Terlambat' ? '(Terlambat)' : isCheckedIn ? '(Keluar)' : '(Masuk)'}</span>
               <button onClick={() => { setShowCamera(false); setPendingAbsen(null) }} className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition"><X size={20} /></button>
             </div>
             <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-gray-900">
@@ -2186,7 +2460,19 @@ export default function App() {
           </>
         )}
 
-        <style dangerouslySetInnerHTML={{ __html: `.animate-fade-in { animation: fadeIn 0.3s ease-out; } .animate-slide-down { animation: slideDown 0.3s ease-out forwards; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } } .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } #qr-reader { border: none !important; border-radius: 16px; overflow: hidden; background: #000; box-shadow: inset 0px 0px 10px rgba(0,0,0,0.5); } #qr-reader__scan_region { background: #000; min-height: 250px; } #qr-reader__dashboard_section_csr button, #qr-reader__dashboard_section_swaplink { background-color: #4f46e5 !important; color: white !important; border: none !important; padding: 10px 20px !important; border-radius: 10px !important; font-weight: bold !important; margin: 10px 5px !important; cursor: pointer; transition: 0.2s; text-decoration: none !important; } #qr-reader__dashboard_section_csr button:hover, #qr-reader__dashboard_section_swaplink:hover { background-color: #4338ca !important; } #qr-reader a { color: #4f46e5; font-weight: bold; } ` }} />
+        <style dangerouslySetInnerHTML={{ __html: `
+          .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+          .animate-slide-down { animation: slideDown 0.3s ease-out forwards; }
+          @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+          #qr-reader { border: none !important; border-radius: 16px; overflow: hidden; background: #000; box-shadow: inset 0px 0px 10px rgba(0,0,0,0.5); }
+          #qr-reader__scan_region { background: #000; min-height: 250px; }
+          #qr-reader__dashboard_section_csr button, #qr-reader__dashboard_section_swaplink { background-color: #4f46e5 !important; color: white !important; border: none !important; padding: 10px 20px !important; border-radius: 10px !important; font-weight: bold !important; margin: 10px 5px !important; cursor: pointer; transition: 0.2s; text-decoration: none !important; }
+          #qr-reader__dashboard_section_csr button:hover, #qr-reader__dashboard_section_swaplink:hover { background-color: #4338ca !important; }
+          #qr-reader a { color: #4f46e5; font-weight: bold; }
+        ` }} />
       </div>
     </div>
   )
