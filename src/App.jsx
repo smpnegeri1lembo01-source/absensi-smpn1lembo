@@ -1861,6 +1861,13 @@ export default function App() {
           </button>
         )}
 
+        <button onClick={() => setShowFraudHistoryModal(true)} className="w-full bg-red-50 border border-red-200 p-4 rounded-2xl mb-6 flex items-center justify-between shadow-sm hover:bg-red-100 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center"><AlertCircle size={20} /></div>
+            <div className="text-left"><h3 className="text-red-800 font-bold text-sm">Riwayat Kecurangan</h3><p className="text-red-600 text-xs">{fraudLogs.length > 0 ? `Ada ${fraudLogs.length} catatan manipulasi jam absen.` : 'Lihat riwayat kecurangan pegawai.'}</p></div>
+          </div>
+        </button>
+
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100"><div className="flex justify-between items-start mb-2"><Users className="text-blue-600" size={24} /><span className="text-xs font-bold bg-blue-100 text-blue-700 py-1 px-2 rounded-full">Total</span></div><h3 className="text-2xl font-bold text-blue-900">{Number(employees.length)}</h3><p className="text-xs text-blue-600">Total Pegawai</p></div>
           <div className="bg-green-50 p-4 rounded-2xl border border-green-100"><div className="flex justify-between items-start mb-2"><CheckCircle className="text-green-600" size={24} /><span className="text-xs font-bold bg-green-100 text-green-700 py-1 px-2 rounded-full">Bulan Ini</span></div><h3 className="text-2xl font-bold text-green-900">{Number(summary.hadir)}</h3><p className="text-xs text-green-600">Hadir</p></div>
@@ -1887,12 +1894,12 @@ export default function App() {
 
   const renderAdminPegawai = () => (
     <div className="flex flex-col p-6 w-full pb-24 animate-fade-in relative min-h-full">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div><h2 className="text-xl font-bold text-gray-800">Data Pegawai</h2><p className="text-xs text-gray-500">Kelola master data pegawai</p></div>
-        <div className="flex gap-2">
-          {userRole === 'superadmin' && <button onClick={() => setShowConfirmDeactivateAll(true)} className="bg-red-600 hover:bg-red-700 text-white p-3 rounded-xl flex items-center justify-center transition-colors shadow-lg shadow-red-200" title="Nonaktifkan Semua"><Lock size={20} /></button>}
-          <button onClick={() => setShowFraudHistoryModal(true)} className="bg-orange-100 hover:bg-orange-200 text-orange-700 p-3 rounded-xl flex items-center justify-center transition-colors shadow-md shadow-orange-100" title="Riwayat Kecurangan"><AlertCircle size={20} /></button>
-          <button onClick={() => setShowAddModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-xl flex items-center justify-center transition-colors shadow-lg shadow-indigo-200"><UserPlus size={20} /></button>
+        <div className="flex gap-2 flex-wrap">
+          {userRole === 'superadmin' && <button onClick={() => setShowConfirmDeactivateAll(true)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-xl flex items-center justify-center transition-colors shadow-lg shadow-red-200 text-xs font-bold gap-1" title="Nonaktifkan Semua"><Lock size={16} /> Kunci Semua</button>}
+          <button onClick={() => setShowFraudHistoryModal(true)} className="bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-2 rounded-xl flex items-center justify-center transition-colors shadow-md shadow-orange-100 text-xs font-bold gap-1" title="Riwayat Kecurangan"><AlertCircle size={16} /> Riwayat Curang</button>
+          <button onClick={() => setShowAddModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl flex items-center justify-center transition-colors shadow-lg shadow-indigo-200 text-xs font-bold gap-1"><UserPlus size={16} /> Tambah</button>
         </div>
       </div>
 
