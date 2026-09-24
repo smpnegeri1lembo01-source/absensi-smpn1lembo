@@ -59,6 +59,21 @@ const getTodayString = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+const checkTimeFraud = async () => {
+  try {
+    const res = await fetch('https://worldtimeapi.org/api/timezone/Asia/Makassar');
+    if (!res.ok) return false;
+    const data = await res.json();
+    const serverTime = new Date(data.datetime).getTime();
+    const localTime = new Date().getTime();
+    const diffMinutes = Math.abs(serverTime - localTime) / (1000 * 60);
+    return diffMinutes > 5; // Toleransi perbedaan waktu maksimal 5 Menit
+  } catch (err) {
+    console.error("Gagal verifikasi waktu server:", err);
+    return false;
+  }
+}
+
 export default function App() {
   // PERBAIKAN FATAL ERROR (Layar Blank): Deklarasi todayString di scope global komponen
   const todayString = getTodayString();
@@ -543,6 +558,23 @@ export default function App() {
     setIsLoading(true)
     const { type, photo, documentName, alasan, startDate, endDate, approvalStatus } = options
     try {
+      if (['Masuk', 'Keluar', 'Hadir Terlambat', 'Pulang'].includes(type)) {
+        const isFraud = await checkTimeFraud()
+        if (isFraud) {
+          const emp = employees.find(e => String(e.nip) === String(userNip))
+          if (emp) {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.id), {
+              isActive: false, blockReason: 'Telah melakukan kecurangan dengan merubah pengaturan jam manual'
+            })
+          }
+          showNotification('AKUN DIBLOKIR: Anda terdeteksi merubah jam perangkat!', 'error')
+          setIsLoading(false)
+          setPendingAbsen(null)
+          handleLogout()
+          return
+        }
+      }
+
       const locationData = await getLocation(type)
       if ((type === 'Masuk' || type === 'Keluar' || type === 'Hadir Terlambat') && logos.schoolLocation?.lat) {
         if (locationData.lat === 0 && locationData.lng === 0) {
@@ -631,7 +663,7 @@ export default function App() {
     } else if (credentials.nip.length > 0 && credentials.password.length > 0) {
       const employee = employees.find(emp => String(emp.nip) === String(credentials.nip))
       if (employee) {
-        if (employee.isActive === false) { showNotification('Akun Anda dinonaktifkan!', 'error'); return }
+        if (employee.isActive === false) { showNotification(`Akun Anda dinonaktifkan! ${employee.blockReason ? 'Alasan: ' + employee.blockReason : ''}`, 'error'); return }
         if (credentials.password === (employee.password || '123456')) {
           setUserRole('pegawai'); setUserNip(String(employee.nip)); setUserName(String(employee.name)); setIsLoggedIn(true); setActiveTab('home')
           showNotification('Login Pegawai Berhasil!', 'success')
@@ -710,7 +742,12 @@ export default function App() {
 
   const handleToggleEmployeeStatus = async (id, currentStatus) => {
     if (!authUser) return
-    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { isActive: !currentStatus }); showNotification('Status diubah', 'success') } 
+    try { 
+      const updates = { isActive: !currentStatus }
+      if (!currentStatus) updates.blockReason = null // Hapus alasan blokir jika diaktifkan kembali
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id), updates)
+      showNotification('Status diubah', 'success') 
+    } 
     catch (error) { showNotification('Gagal mengubah status', 'error') }
   }
 
@@ -1873,6 +1910,7 @@ export default function App() {
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   <span className="inline-block text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md">{String(emp.dept)}</span>
                   {emp.isActive === false && <span className="inline-block text-[10px] font-bold px-2 py-0.5 bg-red-100 text-red-600 rounded-md">Nonaktif</span>}
+                  {emp.isActive === false && emp.blockReason && <span className="inline-block text-[10px] font-bold px-2 py-1 bg-red-50 text-red-700 border border-red-200 rounded-md w-full">⚠️ {String(emp.blockReason)}</span>}
                   <div className="flex items-center gap-1 text-[10px] text-gray-600 bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-100">
                     <Key size={10} className="text-yellow-600" /><span className="font-mono">{String(visibleAdminPasswords[emp.id] ? emp.password || '123456' : '••••••')}</span>
                     <button onClick={() => toggleAdminPasswordVisibility(emp.id)} className="ml-1 text-gray-400 hover:text-yellow-600 transition-colors" title={visibleAdminPasswords[emp.id] ? 'Sembunyikan' : 'Lihat Password'}>{visibleAdminPasswords[emp.id] ? <EyeOff size={12} /> : <Eye size={12} />}</button>
