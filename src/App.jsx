@@ -94,6 +94,7 @@ export default function App() {
   const [employees, setEmployees] = useState([])
   const [students, setStudents] = useState([])
   const [studentLogs, setStudentLogs] = useState([])
+  const [fraudLogs, setFraudLogs] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [notification, setNotification] = useState(null)
   const [isDbConnected, setIsDbConnected] = useState(false)
@@ -156,6 +157,7 @@ export default function App() {
   })
   const [showOpsHoursModal, setShowOpsHoursModal] = useState(false)
   const [editingOpsHours, setEditingOpsHours] = useState(operationalHours)
+  const [showFraudHistoryModal, setShowFraudHistoryModal] = useState(false)
 
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [isInstallable, setIsInstallable] = useState(false)
@@ -333,6 +335,7 @@ export default function App() {
       const studentsRef = collection(db, 'artifacts', appId, 'public', 'data', 'students')
       const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'attendance_logs')
       const studentLogsRefPath = collection(db, 'artifacts', appId, 'public', 'data', 'student_attendance_logs')
+      const fraudLogsRefPath = collection(db, 'artifacts', appId, 'public', 'data', 'fraud_logs')
       const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'logos')
       const opsHoursRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'operational_hours')
 
@@ -357,8 +360,13 @@ export default function App() {
         fetched.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
         setStudentLogs(fetched)
       })
+      const unsubFraudLogs = onSnapshot(fraudLogsRefPath, snapshot => {
+        const fetched = snapshot.docs.map(doc => ({ id: String(doc.id), ...doc.data() }))
+        fetched.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        setFraudLogs(fetched)
+      })
 
-      return () => { unsubEmployees(); unsubStudents(); unsubLogs(); unsubLogos(); unsubStudentLogs(); unsubOpsHours() }
+      return () => { unsubEmployees(); unsubStudents(); unsubLogs(); unsubLogos(); unsubStudentLogs(); unsubOpsHours(); unsubFraudLogs() }
     } catch (e) { console.error(e) }
   }, [authUser])
 
@@ -565,6 +573,12 @@ export default function App() {
           if (emp) {
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.id), {
               isActive: false, blockReason: 'Telah melakukan kecurangan dengan merubah pengaturan jam manual'
+            })
+            await setDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'fraud_logs')), {
+              nip: String(emp.nip),
+              name: String(emp.name),
+              reason: 'Manipulasi Jam Perangkat (Selisih waktu riil > 5 Menit)',
+              timestamp: new Date().toISOString()
             })
           }
           showNotification('AKUN DIBLOKIR: Anda terdeteksi merubah jam perangkat!', 'error')
@@ -1877,6 +1891,7 @@ export default function App() {
         <div><h2 className="text-xl font-bold text-gray-800">Data Pegawai</h2><p className="text-xs text-gray-500">Kelola master data pegawai</p></div>
         <div className="flex gap-2">
           {userRole === 'superadmin' && <button onClick={() => setShowConfirmDeactivateAll(true)} className="bg-red-600 hover:bg-red-700 text-white p-3 rounded-xl flex items-center justify-center transition-colors shadow-lg shadow-red-200" title="Nonaktifkan Semua"><Lock size={20} /></button>}
+          <button onClick={() => setShowFraudHistoryModal(true)} className="bg-orange-100 hover:bg-orange-200 text-orange-700 p-3 rounded-xl flex items-center justify-center transition-colors shadow-md shadow-orange-100" title="Riwayat Kecurangan"><AlertCircle size={20} /></button>
           <button onClick={() => setShowAddModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-xl flex items-center justify-center transition-colors shadow-lg shadow-indigo-200"><UserPlus size={20} /></button>
         </div>
       </div>
@@ -2218,6 +2233,33 @@ export default function App() {
               <div className="flex gap-3">
                 <button onClick={() => setShowConfirmDeactivateAll(false)} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors">Batal</button>
                 <button onClick={handleDeactivateAllEmployees} disabled={isLoading} className="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-200">{isLoading ? 'Memproses...' : 'Ya, Nonaktifkan'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showFraudHistoryModal && (
+          <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-6 animate-fade-in backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl my-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-red-700 flex items-center gap-2"><AlertCircle size={24} /> Riwayat Kecurangan</h3>
+                <button onClick={() => setShowFraudHistoryModal(false)} className="text-gray-400 hover:text-gray-600 bg-gray-50 p-1.5 rounded-md transition-colors"><X size={20} /></button>
+              </div>
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
+                {fraudLogs.length === 0 ? (
+                  <p className="text-center text-gray-500 py-4 text-sm">Belum ada catatan kecurangan.</p>
+                ) : (
+                  fraudLogs.map(log => (
+                    <div key={log.id} className="bg-red-50 border border-red-100 p-4 rounded-xl flex flex-col gap-1">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-red-900 text-sm">{String(log.name)}</span>
+                        <span className="text-[10px] bg-red-200 text-red-800 px-2 py-0.5 rounded font-bold shadow-sm">{formatDate(new Date(log.timestamp)).substring(0, 10)} - {formatTime(new Date(log.timestamp)).substring(0, 5)}</span>
+                      </div>
+                      <span className="text-xs text-red-700 font-medium">NIP/NIK: {String(log.nip)}</span>
+                      <p className="text-[11px] text-red-600 italic mt-2 border-t border-red-100 pt-2 flex items-start gap-1"><AlertCircle size={14} className="mt-0.5 shrink-0" /> {String(log.reason)}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
