@@ -668,7 +668,7 @@ export default function App() {
 
   const handleLogin = e => {
     e.preventDefault()
-    if (credentials.nip === 'yusmukmin' && credentials.password === 'SuperAdmin') {
+    if (credentials.nip === 'yusmukmin' && credentials.password === 'SuperAdminUtama') {
       setUserRole('superadmin'); setUserNip('yusmukmin'); setUserName('Gr.YUSMUKMIN, S.I.P'); setIsLoggedIn(true); setActiveTab('admin-home')
       showNotification('Login Super Admin Berhasil!', 'success')
     } else if (credentials.nip.toLowerCase() === 'admin@absensi.com' && credentials.password === 'admin') {
