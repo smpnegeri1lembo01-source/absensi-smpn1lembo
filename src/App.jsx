@@ -11,7 +11,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 
-const defaultFirebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyDQHVbZ7wKNwkeBjCeEJwS1wBXH5kNjlNY",
   authDomain: "absensi-smpn1-lembo.firebaseapp.com",
   projectId: "absensi-smpn1-lembo",
