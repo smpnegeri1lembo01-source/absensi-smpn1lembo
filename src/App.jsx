@@ -6,13 +6,13 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
-const userFirebaseConfig = {
-  apiKey: "AIzaSyB3JhPuZGDU3bI8SpGsRLbme6hBqkUDDKw",
-  authDomain: "absensi-smpn-6-mamosalat-8c610.firebaseapp.com",
-  projectId: "absensi-smpn-6-mamosalat-8c610",
-  storageBucket: "absensi-smpn-6-mamosalat-8c610.firebasestorage.app",
-  messagingSenderId: "648762406851",
-  appId: "1:648762406851:web:6c1900277b4c84fb6aef76"
+const firebaseConfig = {
+  apiKey: "AIzaSyDQHVbZ7wKNwkeBjCeEJwS1wBXH5kNjlNY",
+  authDomain: "absensi-smpn1-lembo.firebaseapp.com",
+  projectId: "absensi-smpn1-lembo",
+  storageBucket: "absensi-smpn1-lembo.firebasestorage.app",
+  messagingSenderId: "667230179070",
+  appId: "1:667230179070:web:e380aa039a6eb29aae1faf"
 };
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
